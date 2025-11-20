@@ -1,0 +1,7 @@
+body {
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #020c38;
+  min-height: 100vh;
+  color: #111827;
+  /* remove global max-width to avoid unexpected clipping, we'll center .app */
+}

@@ -1,0 +1,605 @@
+/* App.css — improved responsive layout, no horizontal overflow */
+
+/* Reset / base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #020c38;
+  min-height: 100vh;
+  color: #111827;
+  /* remove global max-width to avoid unexpected clipping, we'll center .app */
+}
+
+/* App container centered and constrained */
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  max-width: 1200px;   /* center and constrain content */
+  margin: 0 auto;
+  padding: 1rem;       /* small breathing room at edges on small screens */
+}
+
+/* Header */
+.header {
+  color: rgb(167, 239, 247);
+  padding: 1rem 1.25rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+  z-index: 100;
+  background: transparent; /* keep site background visible, header text uses color */
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.header h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: rgb(167, 239, 247);
+}
+
+.header-icon {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.5rem;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header p {
+  margin-top: 0.25rem;
+  font-size: 0.9rem;
+  opacity: 0.9;
+  color: rgba(167, 239, 247, 0.9);
+}
+
+/* Main Layout — responsive, no overflow */
+.main-layout {
+  display: flex;
+  flex: 1;
+  gap: 1.5rem;
+  padding: 1.5rem 0;
+  width: 100%;
+  align-items: flex-start;
+  overflow: visible; /* allow children to define their scroll */
+}
+
+/* Sidebar */
+.sidebar {
+  flex: 0 0 320px; /* preferred width but flexible */
+  min-width: 260px; /* allow shrink but not too small */
+  max-width: 360px;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 1.25rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow: visible;
+}
+
+.sidebar h2 {
+  font-size: 1.15rem;
+  color: #111827;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Upload area */
+.upload-section {
+  margin-bottom: 0.5rem;
+}
+
+.file-input-wrapper {
+  position: relative;
+  margin: 0.5rem 0;
+}
+
+.file-input-label {
+  display: block;
+  padding: 0.9rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease;
+  font-weight: 600;
+  user-select: none;
+}
+
+.file-input-label:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.18);
+}
+
+.file-input {
+  display: none;
+}
+
+/* File list box: scrollable without pushing layout */
+.file-list {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 12px;
+  max-height: 180px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid rgba(15, 23, 42, 0.03);
+}
+
+.file-item {
+  padding: 0.5rem;
+  background: white;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #374151;
+  word-break: break-all; /* prevents long filenames from overflowing */
+}
+
+/* Buttons */
+.upload-btn,
+.analyze-btn,
+.chat-btn {
+  width: 100%;
+  padding: 0.9rem;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.97rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  margin-bottom: 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.upload-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.analyze-btn {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  color: white;
+}
+
+.chat-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.upload-btn:hover,
+.analyze-btn:hover,
+.chat-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.upload-btn:disabled,
+.analyze-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Server saved files box (small summary inside sidebar) */
+.server-files {
+  margin-top: 0.5rem;
+  padding: 0.6rem;
+  border-radius: 10px;
+  background: #f7f7fb;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+/* Main Content */
+.main-content {
+  flex: 1 1 0%;
+  background: white;
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+  min-height: 560px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Welcome Screen */
+.welcome-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  margin-top: 100px;
+  text-align: center;
+  padding: 2rem;
+}
+
+.welcome-icon {
+  width: 100px;
+  height: 100px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.18);
+}
+
+.welcome-screen h2 {
+  font-size: 1.6rem;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.welcome-screen p {
+  font-size: 1rem;
+  color: #6b7280;
+  max-width: 700px;
+  line-height: 1.6;
+}
+
+/* Analysis Results — responsive grid and scroll */
+.analysis-results {
+  animation: fadeIn 0.45s ease-in;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100%;
+  overflow: hidden;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.analysis-header {
+  margin-bottom: 0.75rem;
+  text-align: center;
+}
+
+.analysis-header h2 {
+  font-size: 1.4rem;
+  color: #111827;
+  margin-bottom: 0.25rem;
+}
+
+.overall-score {
+  display: inline-block;
+  font-size: 2.25rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.25rem;
+  color: transparent;
+}
+
+/* Phases grid area becomes scrollable if content too tall */
+.phases-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+  overflow: auto;
+  padding-right: 0.25rem; /* avoid awkward scrollbar overlap */
+}
+
+/* Phase Cards */
+.phase-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+  transition: all 0.18s ease;
+  border: 1px solid rgba(15, 23, 42, 0.03);
+  min-height: 150px;
+}
+
+.phase-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+}
+
+.phase-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.phase-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.phase-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.phase-title h3 {
+  font-size: 1.05rem;
+  color: #111827;
+}
+
+.phase-score {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* color variants */
+.phase-card.requirements .phase-icon { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.phase-card.design .phase-icon { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+.phase-card.implementation .phase-icon { background: linear-gradient(135deg, #10b981, #059669); }
+.phase-card.testing .phase-icon { background: linear-gradient(135deg, #ec4899, #db2777); }
+.phase-card.deployment .phase-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.phase-card.maintenance .phase-icon { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+
+.phase-details {
+  margin-top: 0.5rem;
+  max-height: 240px;
+  overflow: auto;
+  padding-right: 0.25rem;
+}
+
+.phase-details h4 {
+  font-size: 0.95rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.phase-details ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.phase-details li {
+  padding: 0.35rem 0;
+  color: #374151;
+  font-size: 0.9rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.phase-details li::before {
+  content: "•";
+  display: inline-block;
+  margin-right: 0.4rem;
+  transform: translateY(0.1rem);
+}
+
+/* Chat Interface */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 420px;
+  max-height: 780px;
+  overflow: hidden;
+}
+
+.chat-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1rem;
+  border-radius: 12px 12px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  background: #f8f9fa;
+  border: 1px solid rgba(15, 23, 42, 0.03);
+}
+
+.chat-message {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  animation: slideIn 0.22s ease-out;
+  word-break: break-word;
+}
+
+.chat-message.user {
+  flex-direction: row-reverse;
+}
+
+.message-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.chat-message.ai .message-avatar {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.chat-message.user .message-avatar {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  color: white;
+}
+
+.message-content {
+  max-width: 72%;
+  padding: 0.65rem 0.9rem;
+  border-radius: 12px;
+  line-height: 1.45;
+}
+
+.chat-message.ai .message-content {
+  background: white;
+  color: #111827;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.chat-message.user .message-content {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+/* chat input */
+.chat-input-container {
+  padding: 0.9rem;
+  background: white;
+  border-radius: 0 0 12px 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.chat-input-wrapper {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.chat-input {
+  flex: 1;
+  padding: 0.8rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.chat-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.06);
+}
+
+.send-btn {
+  padding: 0.7rem 1.25rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Loading */
+.loading {
+  text-align: center;
+  padding: 1.75rem;
+  color: #6b7280;
+}
+
+.spinner {
+  width: 44px;
+  height: 44px;
+  border: 4px solid #f3f4f6;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 0.75rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Scrollbar styling (keeps it subtle) */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+::-webkit-scrollbar-thumb { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: linear-gradient(135deg, #764ba2 0%, #667eea 100%); }
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .main-layout {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .sidebar {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    order: 0;
+  }
+
+  .main-content {
+    order: 1;
+  }
+
+  .message-content { max-width: 78%; }
+}
+
+@media (max-width: 640px) {
+  .header h1 { font-size: 1.25rem; }
+  .header-content { gap: 0.5rem; }
+  .file-input-label { padding: 0.75rem; font-size: 0.95rem; }
+  .file-item { font-size: 0.85rem; }
+  .phase-score { font-size: 1.1rem; }
+  .overall-score { font-size: 1.8rem; }
+  .message-content { max-width: 85%; }
+  .phases-grid { gap: 0.75rem; }
+  .chat-container { min-height: 360px; max-height: 680px; }
+}
