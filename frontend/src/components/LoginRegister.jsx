@@ -1,6 +1,23 @@
 import React, { useEffect, useRef } from "react";
 import $ from "jquery";
-import "../styles/login.css"; // make sure this path matches where you save the CSS
+import "../styles/login.css";
+import { initializeApp } from "firebase/app";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyByYr9Tl6J9-B6OcbXadQZjOVlFt6ZFAxY",
+  authDomain: "sdlproj-96a12.firebaseapp.com",
+  projectId: "sdlproj-96a12",
+  storageBucket: "sdlproj-96a12.firebasestorage.app",
+  messagingSenderId: "755626962462",
+  appId: "1:755626962462:web:ba2c5424887089b06c880f",
+  measurementId: "G-MR7WJPKTHP"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 
 export default function LoginRegister() {
   const rootRef = useRef(null);
@@ -14,6 +31,7 @@ export default function LoginRegister() {
     const $toggleButton = $root.find(".material-button.alt-2");
     const $overbox = $root.find(".overbox");
     const $box = $root.find(".box");
+    const $reviewerButton = $root.find(".reviewer-login-btn");
 
     // Toggle overbox (switch to register/login)
     $toggleButton.on("click.loginToggle", (e) => {
@@ -21,56 +39,99 @@ export default function LoginRegister() {
       $overbox.toggleClass("active");
     });
 
-    // Login handler (from index.js)
+    // Login handler - Firebase Authentication
     $loginButton.on("click.login", (e) => {
       e.preventDefault();
-      const username = $root.find("#name").val();
+      const email = $root.find("#name").val();
       const password = $root.find("#pass").val();
 
-      const storedUser = localStorage.getItem(username);
-      if (storedUser) {
-        try {
-          const userObj = JSON.parse(storedUser);
-          if (userObj.password === password) {
-            alert("Login Successful!");
-            sessionStorage.setItem("loggedInUser", username);
-            // keep original redirect behaviour (adjust for your routing if needed)
-            window.location.href = "taskmanager.html";
-          } else {
-            alert("Incorrect password!");
-          }
-        } catch (err) {
-          alert("Stored user data corrupted. Please register again.");
-        }
-      } else {
-        alert("User not found! Please register.");
+      if (!email || !password) {
+        alert("Please enter email and password!");
+        return;
       }
+
+      signInWithEmailAndPassword(auth, email, password)
+        .then((userCredential) => {
+          const user = userCredential.user;
+          alert("Login Successful!");
+          sessionStorage.setItem("loggedInUser", user.uid);
+          window.location.href = "taskmanager.html";
+        })
+        .catch((error) => {
+          const errorMessage = error.message;
+          if (error.code === "auth/user-not-found") {
+            alert("User not found! Please register.");
+          } else if (error.code === "auth/wrong-password") {
+            alert("Incorrect password!");
+          } else {
+            alert("Login Error: " + errorMessage);
+          }
+        });
     });
 
-    // Register handler (from index.js)
+    // Register handler - Firebase Authentication
     $registerButton.on("click.register", (e) => {
       e.preventDefault();
-      const username = $root.find("#regname").val();
+      const email = $root.find("#regname").val();
       const password = $root.find("#regpass").val();
       const repeatPassword = $root.find("#reregpass").val();
+
+      if (!email || !password || !repeatPassword) {
+        alert("Please fill all fields!");
+        return;
+      }
 
       if (password !== repeatPassword) {
         alert("Passwords do not match!");
         return;
       }
 
-      const userExists = localStorage.getItem(username);
-      if (userExists) {
-        alert("User already exists! Please login.");
-      } else {
-        localStorage.setItem(username, JSON.stringify({ password }));
-        alert("Signup successful! You can now login.");
-        // emulate original toggle behaviour
-        $toggleButton.trigger("click");
-      }
+      createUserWithEmailAndPassword(auth, email, password)
+        .then((userCredential) => {
+          const user = userCredential.user;
+          alert("Signup successful! You can now login.");
+          // Clear register form
+          $root.find("#regname").val("");
+          $root.find("#regpass").val("");
+          $root.find("#reregpass").val("");
+          // Switch back to login
+          $toggleButton.trigger("click");
+        })
+        .catch((error) => {
+          const errorMessage = error.message;
+          if (error.code === "auth/email-already-in-use") {
+            alert("User already exists! Please login.");
+          } else if (error.code === "auth/weak-password") {
+            alert("Password is too weak! Use at least 6 characters.");
+          } else if (error.code === "auth/invalid-email") {
+            alert("Please enter a valid email address!");
+          } else {
+            alert("Registration Error: " + errorMessage);
+          }
+        });
     });
 
-    // redirect if already logged in (same behaviour as original)
+    // Reviewer login handler
+    $reviewerButton.on("click.reviewer", (e) => {
+      e.preventDefault();
+      const reviewerEmail = "reviewer@taskmanager.com";
+      const reviewerPassword = "reviewer123";
+
+      signInWithEmailAndPassword(auth, reviewerEmail, reviewerPassword)
+        .then((userCredential) => {
+          const user = userCredential.user;
+          alert("Login as Reviewer Successful!");
+          sessionStorage.setItem("loggedInUser", user.uid);
+          sessionStorage.setItem("userRole", "reviewer");
+          window.location.href = "taskmanager.html";
+        })
+        .catch((error) => {
+          alert("Reviewer login error. Please contact admin.");
+          console.error(error);
+        });
+    });
+
+    // redirect if already logged in
     if (sessionStorage.getItem("loggedInUser")) {
       window.location.href = "taskmanager.html";
     }
@@ -231,6 +292,7 @@ export default function LoginRegister() {
       $toggleButton.off(".loginToggle");
       $loginButton.off(".login");
       $registerButton.off(".register");
+      $reviewerButton.off(".reviewer");
       $root.find(".input input").off(".bl");
       $root.find(".button").off(".ripple");
       $root.find(".alt-2").off(".alt2");
@@ -240,14 +302,14 @@ export default function LoginRegister() {
   }, []);
 
   return (
-    <div className="auth-wrapper"> {/* isolates page-level layout from other global css */}
+    <div className="auth-wrapper">
       <div ref={rootRef} className="materialContainer">
         <div className="box">
           <div className="title">LOGIN</div>
 
           <div className="input">
-            <label htmlFor="name">Username</label>
-            <input type="text" name="name" id="name" />
+            <label htmlFor="name">Email</label>
+            <input type="email" name="name" id="name" />
             <span className="spin"></span>
           </div>
 
@@ -262,6 +324,12 @@ export default function LoginRegister() {
           </div>
 
           <a href="/" className="pass-forgot">Forgot your password?</a>
+
+          <div style={{ textAlign: "center", marginTop: "15px" }}>
+            <button className="reviewer-login-btn" style={{ padding: "8px 16px", fontSize: "12px", backgroundColor: "#f0f0f0", border: "1px solid #ED2553", color: "#ED2553", borderRadius: "4px", cursor: "pointer", fontWeight: "600" }}>
+              Login as Reviewer
+            </button>
+          </div>
         </div>
 
         <div className="overbox">
@@ -270,8 +338,8 @@ export default function LoginRegister() {
           <div className="title">REGISTER</div>
 
           <div className="input">
-            <label htmlFor="regname">Username</label>
-            <input type="text" name="regname" id="regname" />
+            <label htmlFor="regname">Email</label>
+            <input type="email" name="regname" id="regname" />
             <span className="spin"></span>
           </div>
 

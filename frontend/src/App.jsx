@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import SDLCAnalyzer from './pages/SDLCAnalyzer';
 import LoginRegister from "./components/LoginRegister";
+import { app } from "./firebase";
+
 
 function App() {
 const [user, setUser] = useState(sessionStorage.getItem("loggedInUser"));
