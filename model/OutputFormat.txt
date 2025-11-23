@@ -1,0 +1,6 @@
+Prediction Output Format:
+{
+  'hours': 5,
+  'predicted_score': 52.3,
+  'reasoning': 'Prediction based on linear regression trained on historical data.'
+}
