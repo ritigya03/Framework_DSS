@@ -1,6 +1,7 @@
 # main.py
 """
 SDLC AI Verifier Backend (async-safe, multi-file upload + analysis)
+Updated with PDF generation and reviewer endpoints
 Save as main.py and run with:
     uvicorn main:app --reload --port 8000
 """
@@ -9,12 +10,17 @@ import os
 import re
 from pathlib import Path
 from typing import List, Dict, Optional
+from datetime import datetime
 
 import aiofiles
-from fastapi import FastAPI, UploadFile, File, Form, Query
+from fastapi import FastAPI, UploadFile, File, Form, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
+from pydantic import BaseModel
 from dotenv import load_dotenv
+
+# Import PDF generator
+from pdf_generator import generate_pdf_report
 
 # ---- Optional: replace with your actual genai client import if different ----
 import google.generativeai as genai
@@ -50,6 +56,29 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 # Simple limits (tunable)
 MAX_FILES_PER_REQUEST = 50
 MAX_TOTAL_BYTES_PER_REQUEST = 200 * 1024 * 1024  # 200 MB total across all files
+
+# ---------------------------
+# Pydantic Models for PDF
+# ---------------------------
+class PhaseData(BaseModel):
+    score: Optional[int] = 0
+    analysis: Optional[str] = ""
+    strengths: Optional[List[str]] = []
+    recommendations: Optional[List[str]] = []
+
+class AnalysisData(BaseModel):
+    phases: Dict[str, PhaseData]
+
+class PDFRequest(BaseModel):
+    analysisResults: AnalysisData
+    overallScore: str
+    filesAnalyzed: List[str]
+
+class ReviewerRequest(BaseModel):
+    analysisResults: AnalysisData
+    overallScore: str
+    filesAnalyzed: List[str]
+    timestamp: str
 
 # ---------------------------
 # App init
@@ -281,6 +310,93 @@ Give a structured, precise answer.
             "success": False,
             "message": f"Chat error: {str(e)}"
         }, status_code=500)
+
+
+# ==================== NEW: PDF Generation Endpoint ====================
+
+@app.post("/generate-pdf")
+async def generate_pdf(request: PDFRequest):
+    """
+    Generate a PDF verification report from analysis results
+    """
+    try:
+        # Extract data from request
+        analysis_results = request.analysisResults.dict()
+        overall_score = request.overallScore
+        files_analyzed = request.filesAnalyzed
+        
+        # Generate PDF using the imported function
+        pdf_buffer = generate_pdf_report(
+            analysis_results,
+            overall_score,
+            files_analyzed
+        )
+        
+        # Create filename with timestamp
+        filename = f"SDLC_Verification_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        
+        # Return PDF as streaming response
+        return StreamingResponse(
+            pdf_buffer,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}"
+            }
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PDF generation failed: {str(e)}")
+
+
+# ==================== NEW: Send to Reviewer Endpoint ====================
+
+@app.post("/send-to-reviewer")
+async def send_to_reviewer(request: ReviewerRequest):
+    """
+    Send verification report to reviewer
+    TODO: Implement Firebase/Firestore integration
+    """
+    try:
+        # Extract data
+        analysis_results = request.analysisResults.dict()
+        overall_score = request.overallScore
+        files_analyzed = request.filesAnalyzed
+        timestamp = request.timestamp
+        
+        # TODO: Implement your Firebase/Firestore logic here
+        # Example workflow:
+        # 1. Generate PDF
+        pdf_buffer = generate_pdf_report(
+            analysis_results,
+            overall_score,
+            files_analyzed
+        )
+        
+        # 2. Upload PDF to Firebase Storage
+        # storage_url = upload_to_firebase_storage(pdf_buffer, filename)
+        
+        # 3. Store metadata in Firestore
+        # firestore_doc = {
+        #     "overallScore": overall_score,
+        #     "filesAnalyzed": files_analyzed,
+        #     "pdfUrl": storage_url,
+        #     "status": "pending",
+        #     "timestamp": timestamp,
+        #     "phases": analysis_results["phases"]
+        # }
+        # db.collection("verificationReports").add(firestore_doc)
+        
+        # 4. Send notification to reviewer (optional)
+        # send_notification_to_reviewer(...)
+        
+        return JSONResponse({
+            "success": True,
+            "message": "Report successfully sent to reviewer",
+            "timestamp": timestamp
+        })
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send to reviewer: {str(e)}")
 
 
 # ---------------------------

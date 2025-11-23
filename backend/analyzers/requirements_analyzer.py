@@ -3,17 +3,15 @@ def analyze_requirements(file_contents, model):
     Analyze the Requirements phase of SDLC using Google Gemini.
     Processes ALL uploaded files with clean formatting and structured output.
     """
-
     # Build clean, full context with all files included
     context = "PROJECT FILES (FULL CONTENT INCLUDED):\n\n"
-
+    
     for filename, content in file_contents.items():
         context += (
             "===========================================\n"
             f"FILE NAME: {filename}\n"
             "===========================================\n"
         )
-
         # Include full content up to 15k chars (safe for Gemini)
         if isinstance(content, str):
             if len(content) < 15000:
@@ -22,75 +20,107 @@ def analyze_requirements(file_contents, model):
                 context += content[:15000] + "\n...[TRUNCATED]...\n\n"
         else:
             context += "[Non-text / Binary file]\n\n"
-
+    
     # Gemini prompt
     prompt = f"""
-You are an industry-level Senior SDLC Specialist evaluating a software project.
+You are a Senior SDLC Specialist performing Requirements Analysis.
 
 {context}
 
-Your task: Perform a **REQUIREMENTS ANALYSIS** following the SDLC guidelines.
+OUTPUT FORMAT (use this exact structure):
 
-Provide output in this EXACT structure:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 REQUIREMENTS ANALYSIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-===============================================================
-REQUIREMENTS ANALYSIS REPORT
-===============================================================
+1. COMPLETENESS SCORE: [X]/100
 
-1. DOCUMENT COMPLETENESS: [score]/100
-   ✓ Present:
-     - (List present requirement elements)
-   ✗ Missing:
-     - (List missing or unclear requirements)
+   
+   ✅ PRESENT:
+   • [item]
+   • [item]
+   
+   
+   ❌ MISSING:
+   • [item]
+   • [item]
 
-2. REQUIREMENTS QUALITY
-   - Evaluate clarity, specificity, ambiguity
-   - Point out contradictions, vague terms, missing acceptance criteria
-   - Identify functional + non-functional requirement quality
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. QUALITY ISSUES
 
-3. DATASET–REQUIREMENT ALIGNMENT
-   - Verify if dataset supports defined requirements
-   - Check required features/columns
-   - Highlight any mismatch between expected inputs & actual dataset
+   
+   🔴 CRITICAL:
+   • [issue] - [why it matters]
+   • [issue] - [why it matters]
+   
+   
+   🟡 MODERATE:
+   • [issue]
+   • [issue]
 
-4. AI-SPECIFIC REQUIREMENTS
-   - Bias testing requirements
-   - Interpretability/explainability requirements
-   - Performance & safety constraints
-   - Model monitoring requirements
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. DATASET ALIGNMENT
 
----------------------------------------------------------------
-RECOMMENDATIONS
----------------------------------------------------------------
-→ Provide at least 5 high-value actionable improvements
+   
+   ✓ [aligned item]
+   ✓ [aligned item]
+   
+   
+   ✗ [misalignment]
+   ✗ [misalignment]
 
-Return **detailed analysis** with correct formatting.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. AI REQUIREMENTS CHECK
+
+   • Bias/Fairness: [✓/✗] [one-line reason if missing]
+   • Explainability: [✓/✗] [one-line reason if missing]
+   • Performance Metrics: [✓/✗] [one-line reason if missing]
+   • Monitoring Plan: [✓/✗] [one-line reason if missing]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 TOP RECOMMENDATIONS
+
+1. [Action verb] + [what] + [why/impact]
+2. [Action verb] + [what] + [why/impact]
+3. [Action verb] + [what] + [why/impact]
+4. [Action verb] + [what] + [why/impact]
+5. [Action verb] + [what] + [why/impact]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+RULES:
+- Keep each bullet point under 15 words
+- No bold text inside bullets (use it only for section headers if needed)
+- Be specific, not generic
+- Focus on actionable insights
+- Avoid repetition across sections
+- IMPORTANT: Add a blank line before every emoji (✅, ❌, 🔴, 🟡, ✓, ✗, 💡)
 """
-
+    
     try:
         response = model.generate_content(prompt)
         analysis_text = response.text
-
+        
         # Extract score automatically
         score = 80  # default fallback
-
         try:
-            # Look for "COMPLETENESS: 88/100" pattern
+            # Look for "SCORE: 88/100" pattern
             for line in analysis_text.splitlines():
-                if "COMPLETENESS:" in line:
+                if "SCORE:" in line and "/100" in line:
                     val = line.split(":")[1].split("/")[0].strip()
                     score = int(val)
                     break
         except:
             pass
-
+        
         return {
             "phase": "Requirements",
             "score": score,
             "analysis": analysis_text,
             "status": "completed"
         }
-
+    
     except Exception as e:
         return {
             "phase": "Requirements",

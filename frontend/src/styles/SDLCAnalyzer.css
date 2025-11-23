@@ -1,0 +1,571 @@
+/* Animations */
+@keyframes expandCard {
+  0% {
+    transform: translate(-50%, -50%) scale(0.3);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* App Layout */
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  max-width: 1400px;
+  margin: 0 auto;
+  font-family: "Inter", sans-serif;
+}
+
+/* Header */
+.header {
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.headerContent {
+  text-align: center;
+}
+
+.headerSubtitle {
+  font-size: 0.95rem;
+  color: rgba(168, 225, 250, 0.8);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Main Layout */
+.mainLayout {
+  display: flex;
+  gap: 1.5rem;
+  flex: 1;
+}
+
+/* Sidebar */
+.sidebar {
+  flex: 0 0 340px;
+  background-color: #f1f3ffff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  height: fit-content;
+}
+
+.sidebarTitle {
+  font-size: 1.1rem;
+  color: #1e293b;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Upload Section */
+.uploadSection {
+  margin-bottom: 1rem;
+}
+
+.fileInputWrapper {
+  margin-bottom: 0.75rem;
+}
+
+.fileInputLabel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.9rem;
+  background-color: #c5b3e6;
+  color: #1e293b;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.fileInput {
+  display: none;
+}
+
+.fileList {
+  background-color: #002246ff;
+  border-radius: 12px;
+  padding: 0.75rem;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.fileListHeader {
+  font-size: 0.85rem;
+  color: #d6dee8ff;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.fileItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background-color: #ffffff;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: #334155;
+}
+
+/* Buttons */
+.uploadBtn,
+.analyzeBtn,
+.reviewerBtn,
+.pdfBtn,
+.chatBtn {
+  width: 100%;
+  padding: 0.9rem;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  transition: all 0.2s;
+}
+.pdfBtn {
+  
+  background-color: #77dff9;
+  color: #030303;
+  margin-bottom: 0.75rem;
+}
+
+.reviewerBtn {
+  background-color: #f8bef8;
+  color: #0b0b0b;
+  margin-bottom: 0.75rem;
+}
+
+.uploadBtn {
+  background-color: #a8c7fa;
+  color: #1e293b;
+}
+
+.analyzeBtn {
+  background-color: #a8e6cf;
+  color: #1e293b;
+}
+
+.chatBtn {
+  background-color: #c5b3e6;
+  color: #1e293b;
+  margin-top: 0.75rem;
+}
+
+.btnDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Server Files */
+.serverFiles {
+  background-color: #002246ff;
+  border-radius: 12px;
+  padding: 0.75rem;
+  font-size: 0.9rem;
+  color: #ffffff;
+  margin-top: 1rem;
+}
+
+.uploadedCount {
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.5rem;
+  color: #ffffff;
+}
+
+.serverFileItem {
+  font-size: 0.85rem;
+  padding: 0.25rem 0;
+}
+
+/* Upload Status */
+.uploadStatus {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #334155;
+  white-space: pre-line;
+}
+
+/* Main Content */
+.mainContent {
+  flex: 1;
+  background-color: #000421ff;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  min-height: 600px;
+  display: flex;
+  overflow-y: auto;
+  max-height: calc(100vh - 120px);
+}
+
+/* Loading Screen */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 400px;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e2e8f0;
+  border-top: 4px solid #a8c7fa;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loadingText {
+  margin-top: 1rem;
+  font-size: 1.1rem;
+  color: #475569;
+  font-weight: 600;
+}
+
+.loadingSubtext {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+/* Welcome Screen */
+.welcomeScreen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 500px;
+  text-align: center;
+  padding: 2rem;
+}
+
+.welcomeIcon {
+  width: 96px;
+  height: 96px;
+  background-color: #a8c7fa;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  color: #1e293b;
+}
+
+.welcomeH2 {
+  font-size: 1.75rem;
+  color: #1e293b;
+  margin-bottom: 1rem;
+  font-weight: 700;
+}
+
+.welcomeP {
+  font-size: 1rem;
+  color: #64748b;
+  max-width: 700px;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+}
+
+.welcomeSteps {
+  background-color: #f8fafc;
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 500px;
+  text-align: left;
+}
+
+.welcomeStepsH3 {
+  font-size: 1.1rem;
+  color: #1e293b;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+.welcomeStepsOl {
+  padding-left: 1.5rem;
+}
+
+.welcomeStepsLi {
+  color: #475569;
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+/* Chat */
+.chatContainer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 500px;
+  width: 100%;
+}
+
+.chatHeader {
+  background-color: #c5b3e6;
+  color: #1e293b;
+  padding: 1rem 1.25rem;
+  border-radius: 12px 12px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.chatHeaderTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.chatMessages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  background-color: #f8fafc;
+}
+
+.chatMessage {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.chatMessageUser {
+  flex-direction: row-reverse;
+}
+
+.messageAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.messageAvatarAi {
+  background-color: #c5b3e6;
+  color: #1e293b;
+}
+
+.messageAvatarUser {
+  background-color: #a8e6cf;
+  color: #1e293b;
+}
+
+.messageContent {
+  max-width: 70%;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.messageContentAi {
+  background-color: #ffffff;
+  color: #1e293b;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.messageContentUser {
+  background-color: #a8e6cf;
+  color: #1e293b;
+}
+
+.chatInputContainer {
+  padding: 1rem;
+  background-color: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  border-radius: 0 0 12px 12px;
+}
+
+.chatInputWrapper {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.chatInput {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  outline: none;
+  font-family: inherit;
+}
+
+.sendBtn {
+  padding: 0.75rem 1.25rem;
+  background-color: #c5b3e6;
+  color: #1e293b;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Analysis Section */
+.analysisResults {
+  width: 100%;
+  position: relative;
+}
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 999;
+}
+
+.analysisHeader {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.overallScore {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #a8c7fa;
+}
+
+.overallScoreLabel {
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.phasesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
+}
+
+.phaseCard {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.phaseCardExpanded {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) scale(1) !important;
+  width: 90%;
+  max-width: 900px;
+  height: auto;
+  max-height: 85vh;
+  z-index: 1000;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow-y: auto;
+  animation: expandCard 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.phaseHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.phaseTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.phaseIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1e293b;
+}
+
+.phaseH3 {
+  font-size: 1.05rem;
+  color: #1e293b;
+  font-weight: 600;
+  margin: 0;
+}
+
+.phaseScore {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.phaseDetails {
+  max-height: 240px;
+  overflow-y: auto;
+  transition: all 0.3s ease;
+}
+
+.phaseDetailsExpanded {
+  max-height: none;
+}
+
+.phaseDetailsH4 {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.phaseAnalysis {
+  font-size: 0.9rem;
+  color: #475569;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+
+.phaseList {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 1rem;
+}
+
+.phaseLi {
+  font-size: 0.9rem;
+  color: #475569;
+  margin-bottom: 0.5rem;
+  padding-left: 1.25rem;
+  position: relative;
+}

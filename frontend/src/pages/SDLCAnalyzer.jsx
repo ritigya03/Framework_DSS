@@ -1,5 +1,24 @@
-import { useState } from "react";
-import { Upload, FileCheck, Sparkles, MessageSquare, Send, Bot, User, CheckCircle, FileText, Layout, Code, TestTube, Rocket, Settings } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  Upload,
+  FileCheck,
+  Sparkles,
+  MessageSquare,
+  Send,
+  Bot,
+  User,
+  CheckCircle,
+  FileText,
+  Layout,
+  Code,
+  TestTube,
+  Rocket,
+  Settings,
+  FileDown,
+  UserCheck,
+} from "lucide-react";
+
+import "../styles/SDLCAnalyzer.css";
 
 const API_BASE_URL = "http://localhost:8000";
 
@@ -11,11 +30,19 @@ function SDLCAnalyzer() {
   const [analysisResults, setAnalysisResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showChat, setShowChat] = useState(false);
-  const [messages, setMessages] = useState([
-    { role: "ai", content: "Hello! I'm your SDLC Analysis Assistant. I can help you understand your project analysis results and answer questions about SDLC best practices. How can I help you today?" }
-  ]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
+  const [expandedCard, setExpandedCard] = useState(null);
+  const [pdfGenerating, setPdfGenerating] = useState(false);
+  const [sendingToReviewer, setSendingToReviewer] = useState(false);
+
+  const [messages, setMessages] = useState([
+    {
+      role: "ai",
+      content:
+        "Hello! I'm your SDLC Analysis Assistant. I can help you understand your project analysis results and answer questions about SDLC best practices. How can I help you today?",
+    },
+  ]);
 
   const phaseIcons = {
     requirements: FileText,
@@ -26,9 +53,25 @@ function SDLCAnalyzer() {
     maintenance: Settings,
   };
 
+  useEffect(() => {
+    const styleSheet = document.createElement("style");
+    styleSheet.textContent = `
+      @keyframes expandCard {
+        0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+        100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(styleSheet);
+    return () => document.head.removeChild(styleSheet);
+  }, []);
+
   const handleFileChange = (e) => {
-    const selectedFiles = Array.from(e.target.files);
-    setFiles(selectedFiles);
+    const selected = Array.from(e.target.files);
+    setFiles(selected);
     setUploadStatus("");
   };
 
@@ -37,26 +80,28 @@ function SDLCAnalyzer() {
       setUploadStatus("❌ Please select files first!");
       return;
     }
-    const formData = new FormData();
-    files.forEach((file) => formData.append("files", file));
-    
+
+    const fd = new FormData();
+    files.forEach((f) => fd.append("files", f));
+
     try {
       setLoading(true);
       setUploadStatus("⏳ Uploading files...");
-      const response = await fetch(`${API_BASE_URL}/upload`, {
+
+      const res = await fetch(`${API_BASE_URL}/upload`, {
         method: "POST",
-        body: formData,
+        body: fd,
       });
-      const data = await response.json();
-      
-      if (data && data.success) {
-        const saved = data.files || [];
-        setServerFiles(saved);
-        setUploadedCount(saved.length);
+
+      const data = await res.json();
+
+      if (data?.success) {
+        setServerFiles(data.files || []);
+        setUploadedCount((data.files || []).length);
         setUploadStatus(`✅ ${data.message || "Files uploaded successfully"}`);
       }
-    } catch (error) {
-      setUploadStatus(`❌ Upload failed: ${error.message}`);
+    } catch (err) {
+      setUploadStatus(`❌ Upload failed: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -66,13 +111,15 @@ function SDLCAnalyzer() {
     try {
       setLoading(true);
       setUploadStatus("⏳ Analyzing project... This may take 30-60 seconds.");
-      const response = await fetch(`${API_BASE_URL}/analyze`, {
+
+      const res = await fetch(`${API_BASE_URL}/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
-      const data = await response.json();
-      
-      if (data && data.phases) {
+
+      const data = await res.json();
+
+      if (data?.phases) {
         setAnalysisResults(data);
         setUploadStatus("");
         if (data.files_analyzed) {
@@ -80,62 +127,151 @@ function SDLCAnalyzer() {
           setUploadedCount(data.files_analyzed.length);
         }
       }
-    } catch (error) {
-      setUploadStatus(`❌ Analysis failed: ${error.message}`);
+    } catch (err) {
+      setUploadStatus(`❌ Analysis failed: ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleGeneratePDF = async () => {
+    try {
+      setPdfGenerating(true);
+      setUploadStatus("⏳ Generating PDF report...");
+      
+      const response = await fetch(`${API_BASE_URL}/generate-pdf`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          analysisResults: analysisResults,
+          overallScore: overallScore(),
+          filesAnalyzed: serverFiles
+        }),
+      });
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `SDLC_Verification_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        setUploadStatus("✅ PDF report generated and downloaded!");
+      } else {
+        setUploadStatus("❌ Failed to generate PDF report");
+      }
+    } catch (error) {
+      setUploadStatus(`❌ PDF generation failed: ${error.message}`);
+    } finally {
+      setPdfGenerating(false);
+    }
+  };
+
+  const handleSendToReviewer = async () => {
+    try {
+      setSendingToReviewer(true);
+      setUploadStatus("⏳ Sending to reviewer...");
+      
+      const response = await fetch(`${API_BASE_URL}/send-to-reviewer`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          analysisResults: analysisResults,
+          overallScore: overallScore(),
+          filesAnalyzed: serverFiles,
+          timestamp: new Date().toISOString()
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data && data.success) {
+        setUploadStatus(`✅ ${data.message || "Report sent to reviewer successfully!"}`);
+      } else {
+        setUploadStatus("❌ Failed to send report to reviewer");
+      }
+    } catch (error) {
+      setUploadStatus(`❌ Failed to send to reviewer: ${error.message}`);
+    } finally {
+      setSendingToReviewer(false);
+    }
+  };
+
   const handleSendMessage = async () => {
     if (!chatInput.trim()) return;
-    
+
     const userMessage = { role: "user", content: chatInput };
     setMessages((prev) => [...prev, userMessage]);
     setChatInput("");
     setChatLoading(true);
-    
+
     try {
       const fd = new FormData();
-      fd.append("message", chatInput);
-      const response = await fetch(`${API_BASE_URL}/chat`, {
+      fd.append("message", userMessage.content);
+
+      const res = await fetch(`${API_BASE_URL}/chat`, {
         method: "POST",
         body: fd,
       });
-      const data = await response.json();
-      const aiText = data?.response || data?.message || "No response from AI";
+
+      const data = await res.json();
+      const aiText = (data?.response || data?.message || "No response").replace(
+        /(\d+\.\s)/g,
+        "\n$1"
+      );
+
       setMessages((prev) => [...prev, { role: "ai", content: aiText }]);
-    } catch (error) {
-      setMessages((prev) => [...prev, { role: "ai", content: `Sorry, I encountered an error. Please try again.` }]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: "ai", content: "Sorry, something went wrong." },
+      ]);
     } finally {
       setChatLoading(false);
     }
   };
 
-  const calculateOverallScore = () => {
+  const overallScore = () => {
     if (!analysisResults?.phases) return 0;
-    const phases = Object.values(analysisResults.phases);
-    const total = phases.reduce((sum, phase) => sum + (Number(phase.score) || 0), 0);
-    return phases.length ? (total / phases.length).toFixed(1) : "0.0";
+    const vals = Object.values(analysisResults.phases);
+    const total = vals.reduce((s, p) => s + (Number(p.score) || 0), 0);
+    return vals.length ? (total / vals.length).toFixed(1) : "0.0";
   };
 
+  const getPhaseColor = (phase) =>
+    ({
+      requirements: "#a8c7fa",
+      design: "#c5b3e6",
+      implementation: "#a8e6cf",
+      testing: "#ffa8d4",
+      deployment: "#ffd4a8",
+      maintenance: "#a8e1fa",
+    }[phase] || "#a8c7fa");
+
   return (
-    <div style={styles.app}>
-      <header style={styles.header}>
-        <div style={styles.headerContent}>
-          <p style={styles.headerSubtitle}>Design and Development of an SDLC-based Framework for Verifying AI-based Decision Support Systems</p>
+    <div className="app">
+      <header className="header">
+        <div className="headerContent">
+          <p className="headerSubtitle">
+            Design and Development of an SDLC-based Framework for Verifying
+            AI-based Decision Support Systems
+          </p>
         </div>
       </header>
 
-      <div style={styles.mainLayout}>
-        <aside style={styles.sidebar}>
-          <h2 style={styles.sidebarTitle}>
+      <div className="mainLayout">
+        {/* Sidebar */}
+        <aside className="sidebar">
+          <h2 className="sidebarTitle">
             <Upload size={20} /> Upload Project Files
           </h2>
-          
-          <div style={styles.uploadSection}>
-            <div style={styles.fileInputWrapper}>
-              <label htmlFor="file-upload" style={styles.fileInputLabel}>
+
+          <div className="uploadSection">
+            <div className="fileInputWrapper">
+              <label htmlFor="file-upload" className="fileInputLabel">
                 <FileCheck size={20} />
                 Choose Files
               </label>
@@ -143,205 +279,323 @@ function SDLCAnalyzer() {
                 id="file-upload"
                 type="file"
                 multiple
+                className="fileInput"
                 onChange={handleFileChange}
-                style={styles.fileInput}
               />
             </div>
 
             {files.length > 0 && (
-              <div style={styles.fileList}>
-                <div style={styles.fileListHeader}>
+              <div className="fileList">
+                <div className="fileListHeader">
                   {files.length} file(s) selected locally
                 </div>
-                {files.map((file, index) => (
-                  <div key={index} style={styles.fileItem}>
+                {files.map((f, idx) => (
+                  <div key={idx} className="fileItem">
                     <FileText size={16} />
-                    {file.name}
+                    {f.name}
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          <button onClick={handleUpload} disabled={loading || files.length === 0} style={{...styles.uploadBtn, ...(loading || files.length === 0 ? styles.btnDisabled : {})}}>
+          {/* Buttons */}
+          <button
+            className={`uploadBtn ${
+              loading || files.length === 0 ? "btnDisabled" : ""
+            }`}
+            disabled={loading || files.length === 0}
+            onClick={handleUpload}
+          >
             <Upload size={18} />
-            {loading && uploadStatus.includes("Uploading") ? "Uploading..." : "Upload Files"}
+            {loading && uploadStatus.includes("Uploading")
+              ? "Uploading..."
+              : "Upload Files"}
           </button>
 
-          <button onClick={handleAnalyze} disabled={loading || serverFiles.length === 0} style={{...styles.analyzeBtn, ...(loading || serverFiles.length === 0 ? styles.btnDisabled : {})}}>
+          <button
+            className={`analyzeBtn ${
+              loading || serverFiles.length === 0 ? "btnDisabled" : ""
+            }`}
+            disabled={loading || serverFiles.length === 0}
+            onClick={handleAnalyze}
+          >
             <Sparkles size={18} />
-            {loading && uploadStatus.includes("Analyzing") ? "Analyzing..." : "Analyze Project"}
+            {loading && uploadStatus.includes("Analyzing")
+              ? "Analyzing..."
+              : "Analyze Project"}
           </button>
+
+          {/* PDF & Reviewer Buttons - Only show after analysis */}
+          {analysisResults && (
+            <>
+              <button
+                className={`pdfBtn ${pdfGenerating ? "btnDisabled" : ""}`}
+                disabled={pdfGenerating}
+                onClick={handleGeneratePDF}
+              >
+                <FileDown size={18} />
+                {pdfGenerating ? "Generating..." : "Generate PDF Report"}
+              </button>
+
+              <button
+                className={`reviewerBtn ${sendingToReviewer ? "btnDisabled" : ""}`}
+                disabled={sendingToReviewer}
+                onClick={handleSendToReviewer}
+              >
+                <UserCheck size={18} />
+                {sendingToReviewer ? "Sending..." : "Send to Reviewer"}
+              </button>
+            </>
+          )}
 
           {serverFiles.length > 0 && (
-            <div style={styles.serverFiles}>
+            <div className="serverFiles">
               <strong>Server saved files:</strong>
-              <div style={styles.uploadedCount}>{uploadedCount} file(s) saved on server</div>
-              {serverFiles.map((sf, idx) => (
-                <div key={idx} style={styles.serverFileItem}>{sf}</div>
+              <div className="uploadedCount">
+                {uploadedCount} file(s) saved on server
+              </div>
+
+              {serverFiles.map((sf, i) => (
+                <div key={i} className="serverFileItem">
+                  {sf}
+                </div>
               ))}
             </div>
           )}
 
           {uploadStatus && (
-            <div style={styles.uploadStatus}>
-              {uploadStatus}
-            </div>
+            <div className="uploadStatus">{uploadStatus}</div>
           )}
 
-          {analysisResults && !showChat && (
-            <button onClick={() => setShowChat(true)} style={styles.chatBtn}>
-              <MessageSquare size={18} />
-              Chat with AI
+          {!showChat && analysisResults && (
+            <button className="chatBtn" onClick={() => setShowChat(true)}>
+              <MessageSquare size={18} /> Chat with AI
             </button>
           )}
 
           {showChat && (
-            <button onClick={() => setShowChat(false)} style={styles.chatBtn}>
-              <CheckCircle size={18} />
-              View Analysis
+            <button className="chatBtn" onClick={() => setShowChat(false)}>
+              <CheckCircle size={18} /> View Analysis
             </button>
           )}
         </aside>
 
-        <main style={styles.mainContent}>
+        {/* MAIN CONTENT */}
+        <main className="mainContent">
           {loading ? (
-            <div style={styles.loading}>
-              <div style={styles.spinner}></div>
-              <div style={styles.loadingText}>Processing your request...</div>
+            <div className="loading">
+              <div className="spinner"></div>
+              <div className="loadingText">Processing your request...</div>
               {uploadStatus.includes("Analyzing") && (
-                <div style={styles.loadingSubtext}>This may take 30-60 seconds while AI analyzes your project</div>
+                <div className="loadingSubtext">
+                  This may take 30-60 seconds while AI analyzes your project
+                </div>
               )}
             </div>
           ) : showChat ? (
-            <div style={styles.chatContainer}>
-              <div style={styles.chatHeader}>
+            <div className="chatContainer">
+              <div className="chatHeader">
                 <Bot size={24} />
-                <h3 style={styles.chatHeaderTitle}>AI Assistant</h3>
+                <h3 className="chatHeaderTitle">AI Assistant</h3>
               </div>
 
-              <div style={styles.chatMessages}>
-                {messages.map((message, index) => (
-                  <div key={index} style={{...styles.chatMessage, ...(message.role === "user" ? styles.chatMessageUser : {})}}>
-                    <div style={{...styles.messageAvatar, ...(message.role === "ai" ? styles.messageAvatarAi : styles.messageAvatarUser)}}>
-                      {message.role === "ai" ? <Bot size={20} /> : <User size={20} />}
+              <div className="chatMessages">
+                {messages.map((m, idx) => (
+                  <div
+                    key={idx}
+                    className={`chatMessage ${
+                      m.role === "user" ? "chatMessageUser" : ""
+                    }`}
+                  >
+                    <div
+                      className={`messageAvatar ${
+                        m.role === "ai"
+                          ? "messageAvatarAi"
+                          : "messageAvatarUser"
+                      }`}
+                    >
+                      {m.role === "ai" ? <Bot size={20} /> : <User size={20} />}
                     </div>
-                    <div style={{...styles.messageContent, ...(message.role === "user" ? styles.messageContentUser : styles.messageContentAi)}}>
-                      {message.content}
+
+                    <div
+                      className={`messageContent ${
+                        m.role === "ai"
+                          ? "messageContentAi"
+                          : "messageContentUser"
+                      }`}
+                    >
+                      {m.content}
                     </div>
                   </div>
                 ))}
+
                 {chatLoading && (
-                  <div style={styles.chatMessage}>
-                    <div style={{...styles.messageAvatar, ...styles.messageAvatarAi}}>
+                  <div className="chatMessage">
+                    <div className="messageAvatar messageAvatarAi">
                       <Bot size={20} />
                     </div>
-                    <div style={{...styles.messageContent, ...styles.messageContentAi}}>
+                    <div className="messageContent messageContentAi">
                       Thinking...
                     </div>
                   </div>
                 )}
               </div>
 
-              <div style={styles.chatInputContainer}>
-                <div style={styles.chatInputWrapper}>
+              <div className="chatInputContainer">
+                <div className="chatInputWrapper">
                   <input
                     type="text"
+                    className="chatInput"
                     placeholder="Ask me anything about your analysis..."
                     value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    onKeyPress={(e) => e.key === "Enter" && !chatLoading && handleSendMessage()}
                     disabled={chatLoading}
-                    style={styles.chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={(e) =>
+                      e.key === "Enter" &&
+                      !chatLoading &&
+                      handleSendMessage()
+                    }
                   />
-                  <button onClick={handleSendMessage} disabled={chatLoading || !chatInput.trim()} style={{...styles.sendBtn, ...(chatLoading || !chatInput.trim() ? styles.btnDisabled : {})}}>
-                    <Send size={18} />
-                    Send
+                  <button
+                    className={`sendBtn ${
+                      chatLoading || !chatInput.trim() ? "btnDisabled" : ""
+                    }`}
+                    disabled={chatLoading || !chatInput.trim()}
+                    onClick={handleSendMessage}
+                  >
+                    <Send size={18} /> Send
                   </button>
                 </div>
               </div>
             </div>
           ) : analysisResults ? (
-            <div style={styles.analysisResults}>
-              <div style={styles.analysisHeader}>
-                <div style={styles.overallScore}>{calculateOverallScore()}/100</div>
-                <p style={styles.overallScoreLabel}>Overall SDLC Compliance Score</p>
+            <div className="analysisResults">
+              {expandedCard && (
+                <div
+                  className="overlay"
+                  onClick={() => setExpandedCard(null)}
+                ></div>
+              )}
+
+              <div className="analysisHeader">
+                <div className="overallScore">{overallScore()}/100</div>
+                <p className="overallScoreLabel">
+                  Overall SDLC Compliance Score
+                </p>
               </div>
 
-              <div style={styles.phasesGrid}>
-                {Object.entries(analysisResults.phases).map(([phaseName, phaseData]) => {
-                  const IconComponent = phaseIcons[phaseName] || FileText;
-                  const phaseColor = getPhaseColor(phaseName);
-                  
-                  return (
-                    <div key={phaseName} style={{...styles.phaseCard, borderLeft: `4px solid ${phaseColor}`}}>
-                      <div style={styles.phaseHeader}>
-                        <div style={styles.phaseTitle}>
-                          <div style={{...styles.phaseIcon, backgroundColor: phaseColor}}>
-                            <IconComponent size={20} />
-                          </div>
-                          <h3 style={styles.phaseH3}>{phaseName.charAt(0).toUpperCase() + phaseName.slice(1)}</h3>
-                        </div>
-                        <div style={styles.phaseScore}>{phaseData.score || 0}/100</div>
-                      </div>
+              <div className="phasesGrid">
+                {Object.entries(analysisResults.phases).map(
+                  ([phaseName, data]) => {
+                    const Icon = phaseIcons[phaseName];
+                    const phaseColor = getPhaseColor(phaseName);
+                    const isOpen = expandedCard === phaseName;
 
-                      <div style={styles.phaseDetails}>
-                        {phaseData.analysis ? (
-                          <div>
-                            <h4 style={styles.phaseDetailsH4}>Analysis</h4>
-                            <p style={styles.phaseAnalysis}>{phaseData.analysis}</p>
+                    return (
+                      <div
+                        key={phaseName}
+                        className={`phaseCard ${
+                          isOpen ? "phaseCardExpanded" : ""
+                        }`}
+                        style={{ borderLeft: `4px solid ${phaseColor}` }}
+                        onClick={() => setExpandedCard(phaseName)}
+                      >
+                        <div className="phaseHeader">
+                          <div className="phaseTitle">
+                            <div
+                              className="phaseIcon"
+                              style={{ backgroundColor: phaseColor }}
+                            >
+                              <Icon size={20} />
+                            </div>
+                            <h3 className="phaseH3">
+                              {phaseName[0].toUpperCase() +
+                                phaseName.slice(1)}
+                            </h3>
                           </div>
-                        ) : (
-                          <>
-                            <div>
-                              <h4 style={styles.phaseDetailsH4}>✓ Strengths</h4>
-                              <ul style={styles.phaseList}>
-                                {phaseData.strengths && phaseData.strengths.length > 0 ? (
-                                  phaseData.strengths.map((strength, idx) => (
-                                    <li key={idx} style={styles.phaseLi}>{strength}</li>
-                                  ))
-                                ) : (
-                                  <li style={styles.phaseLi}>No strengths identified</li>
-                                )}
-                              </ul>
-                            </div>
-                            <div>
-                              <h4 style={styles.phaseDetailsH4}>→ Recommendations</h4>
-                              <ul style={styles.phaseList}>
-                                {phaseData.recommendations && phaseData.recommendations.length > 0 ? (
-                                  phaseData.recommendations.map((rec, idx) => (
-                                    <li key={idx} style={styles.phaseLi}>{rec}</li>
-                                  ))
-                                ) : (
-                                  <li style={styles.phaseLi}>No recommendations</li>
-                                )}
-                              </ul>
-                            </div>
-                          </>
-                        )}
+
+                          <div className="phaseScore">
+                            {data.score || 0}/100
+                          </div>
+                        </div>
+
+                        <div
+                          className={`phaseDetails ${
+                            isOpen ? "phaseDetailsExpanded" : ""
+                          }`}
+                        >
+                          {data.analysis ? (
+                            <>
+                              <h4 className="phaseDetailsH4">Analysis</h4>
+                              <p className="phaseAnalysis">{data.analysis}</p>
+                            </>
+                          ) : (
+                            <>
+                              <div>
+                                <h4 className="phaseDetailsH4">✓ Strengths</h4>
+                                <ul className="phaseList">
+                                  {data.strengths?.length > 0 ? (
+                                    data.strengths.map((s, idx) => (
+                                      <li key={idx} className="phaseLi">
+                                        {s}
+                                      </li>
+                                    ))
+                                  ) : (
+                                    <li className="phaseLi">
+                                      No strengths identified
+                                    </li>
+                                  )}
+                                </ul>
+                              </div>
+
+                              <div>
+                                <h4 className="phaseDetailsH4">
+                                  → Recommendations
+                                </h4>
+                                <ul className="phaseList">
+                                  {data.recommendations?.length > 0 ? (
+                                    data.recommendations.map((r, idx) => (
+                                      <li key={idx} className="phaseLi">
+                                        {r}
+                                      </li>
+                                    ))
+                                  ) : (
+                                    <li className="phaseLi">
+                                      No recommendations
+                                    </li>
+                                  )}
+                                </ul>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  }
+                )}
               </div>
             </div>
           ) : (
-            <div style={styles.welcomeScreen}>
-              <div style={styles.welcomeIcon}>
+            <div className="welcomeScreen">
+              <div className="welcomeIcon">
                 <Sparkles size={48} />
               </div>
-              <h2 style={styles.welcomeH2}>Welcome to SDLC AI Verifier</h2>
-              <p style={styles.welcomeP}>
-                Upload your project files including SRS documents, design documents, implementation code, and test files. 
-                Our AI will analyze each phase of the SDLC and provide detailed feedback and recommendations.
+              <h2 className="welcomeH2">Welcome to SDLC AI Verifier</h2>
+              <p className="welcomeP">
+                Upload your SRS, design documents, implementation files, and
+                test specs.  
+                AI will analyze each SDLC phase and provide improvements.
               </p>
-              <div style={styles.welcomeSteps}>
-                <h3 style={styles.welcomeStepsH3}>Steps to use:</h3>
-                <ol style={styles.welcomeStepsOl}>
-                  <li style={styles.welcomeStepsLi}>Select your project files using "Choose Files"</li>
-                  <li style={styles.welcomeStepsLi}>Click "Upload Files" to send them to the server</li>
-                  <li style={styles.welcomeStepsLi}>Click "Analyze Project" to run SDLC analysis</li>
-                  <li style={styles.welcomeStepsLi}>Review results and chat with AI for recommendations</li>
+
+              <div className="welcomeSteps">
+                <h3 className="welcomeStepsH3">How to use:</h3>
+                <ol className="welcomeStepsOl">
+                  <li className="welcomeStepsLi">Choose your files</li>
+                  <li className="welcomeStepsLi">Upload them</li>
+                  <li className="welcomeStepsLi">Run project analysis</li>
+                  <li className="welcomeStepsLi">Generate PDF or send to reviewer</li>
+                  <li className="welcomeStepsLi">Chat with AI to refine</li>
                 </ol>
               </div>
             </div>
@@ -351,465 +605,5 @@ function SDLCAnalyzer() {
     </div>
   );
 }
-
-function getPhaseColor(phaseName) {
-  const colors = {
-    requirements: '#a8c7fa',
-    design: '#c5b3e6',
-    implementation: '#a8e6cf',
-    testing: '#ffa8d4',
-    deployment: '#ffd4a8',
-    maintenance: '#a8e1fa',
-  };
-  return colors[phaseName] || '#a8c7fa';
-}
-
-const styles = {
-  app: {
-    display: 'flex',
-    flexDirection: 'column',
-    minHeight: '100vh',
-    maxWidth: '1400px',
-    margin: '0 auto',
-    fontFamily: "'Inter', sans-serif",
-  },
-  header: {
-    padding: '1.5rem',
-    marginBottom: '1rem',
-  },
-  headerContent: {
-    textAlign: 'center',
-  },
-  headerSubtitle: {
-    fontSize: '0.95rem',
-    color: 'rgba(168, 225, 250, 0.8)',
-    maxWidth: '800px',
-    margin: '0 auto',
-  },
-  mainLayout: {
-    display: 'flex',
-    gap: '1.5rem',
-    flex: 1,
-  },
-  sidebar: {
-    flex: '0 0 340px',
-    backgroundColor: '#f1f3ffff',
-    borderRadius: '16px',
-    padding: '1.5rem',
-    boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)',
-    height: 'fit-content',
-  },
-  sidebarTitle: {
-    fontSize: '1.1rem',
-    color: '#1e293b',
-    marginBottom: '1rem',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-  },
-  uploadSection: {
-    marginBottom: '1rem',
-  },
-  fileInputWrapper: {
-    marginBottom: '0.75rem',
-  },
-  fileInputLabel: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.5rem',
-    padding: '0.9rem',
-    backgroundColor: '#c5b3e6',
-    color: '#1e293b',
-    borderRadius: '12px',
-    cursor: 'pointer',
-    fontWeight: '600',
-    transition: 'all 0.2s',
-  },
-  fileInput: {
-    display: 'none',
-  },
-  fileList: {
-    backgroundColor: '#002246ff',
-    borderRadius: '12px',
-    padding: '0.75rem',
-    maxHeight: '180px',
-    overflowY: 'auto',
-  },
-  fileListHeader: {
-    fontSize: '0.85rem',
-    color: '#d6dee8ff',
-    marginBottom: '0.5rem',
-    fontWeight: '600',
-  },
-  fileItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    padding: '0.5rem',
-    backgroundColor: '#ffffff',
-    borderRadius: '8px',
-    marginBottom: '0.5rem',
-    fontSize: '0.9rem',
-    color: '#334155',
-  },
-  uploadBtn: {
-    width: '100%',
-    padding: '0.9rem',
-    backgroundColor: '#a8c7fa',
-    color: '#1e293b',
-    border: 'none',
-    borderRadius: '12px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.5rem',
-    marginBottom: '0.75rem',
-    transition: 'all 0.2s',
-  },
-  analyzeBtn: {
-    width: '100%',
-    padding: '0.9rem',
-    backgroundColor: '#a8e6cf',
-    color: '#1e293b',
-    border: 'none',
-    borderRadius: '12px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.5rem',
-    marginBottom: '0.75rem',
-    transition: 'all 0.2s',
-  },
-  chatBtn: {
-    width: '100%',
-    padding: '0.9rem',
-    backgroundColor: '#c5b3e6',
-    color: '#1e293b',
-    border: 'none',
-    borderRadius: '12px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.5rem',
-    marginTop: '0.75rem',
-    transition: 'all 0.2s',
-  },
-  btnDisabled: {
-    opacity: 0.5,
-    cursor: 'not-allowed',
-  },
-  serverFiles: {
-    backgroundColor: '#002246ff',
-    borderRadius: '12px',
-    padding: '0.75rem',
-    fontSize: '0.9rem',
-    color: '#ffffff',
-    marginTop: '1rem',
-  },
-  uploadedCount: {
-    fontSize: '0.85rem',
-    color: '#ffffff',
-    marginTop: '0.25rem',
-    marginBottom: '0.5rem',
-  },
-  serverFileItem: {
-    fontSize: '0.85rem',
-    padding: '0.25rem 0',
-    color: '#ffffff',
-  },
-  uploadStatus: {
-    marginTop: '1rem',
-    padding: '0.75rem',
-    backgroundColor: '#f8fafc',
-    borderRadius: '8px',
-    fontSize: '0.9rem',
-    color: '#334155',
-    whiteSpace: 'pre-line',
-  },
-  mainContent: {
-    flex: 1,
-    backgroundColor: '#000421ff',
-    borderRadius: '16px',
-    padding: '2rem',
-    boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)',
-    minHeight: '600px',
-    display: 'flex',
-    overflowY: 'auto',
-    maxHeight: 'calc(100vh - 120px)',
-  },
-  loading: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
-    minHeight: '400px',
-  },
-  spinner: {
-    width: '48px',
-    height: '48px',
-    border: '4px solid #e2e8f0',
-    borderTop: '4px solid #a8c7fa',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite',
-  },
-  loadingText: {
-    marginTop: '1rem',
-    fontSize: '1.1rem',
-    color: '#475569',
-    fontWeight: '600',
-  },
-  loadingSubtext: {
-    marginTop: '0.5rem',
-    fontSize: '0.9rem',
-    color: '#64748b',
-  },
-  welcomeScreen: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
-    minHeight: '500px',
-    textAlign: 'center',
-    padding: '2rem',
-  },
-  welcomeIcon: {
-    width: '96px',
-    height: '96px',
-    backgroundColor: '#a8c7fa',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: '1.5rem',
-    color: '#1e293b',
-  },
-  welcomeH2: {
-    fontSize: '1.75rem',
-    color: '#1e293b',
-    marginBottom: '1rem',
-    fontWeight: '700',
-  },
-  welcomeP: {
-    fontSize: '1rem',
-    color: '#64748b',
-    maxWidth: '700px',
-    lineHeight: '1.6',
-    marginBottom: '2rem',
-  },
-  welcomeSteps: {
-    backgroundColor: '#f8fafc',
-    borderRadius: '12px',
-    padding: '1.5rem',
-    maxWidth: '500px',
-    textAlign: 'left',
-  },
-  welcomeStepsH3: {
-    fontSize: '1.1rem',
-    color: '#1e293b',
-    marginBottom: '0.75rem',
-    fontWeight: '600',
-  },
-  welcomeStepsOl: {
-    paddingLeft: '1.5rem',
-  },
-  welcomeStepsLi: {
-    color: '#475569',
-    marginBottom: '0.5rem',
-    lineHeight: '1.5',
-  },
-  chatContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100%',
-    minHeight: '500px',
-    width: '100%',
-  },
-  chatHeader: {
-    backgroundColor: '#c5b3e6',
-    color: '#1e293b',
-    padding: '1rem 1.25rem',
-    borderRadius: '12px 12px 0 0',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.75rem',
-  },
-  chatHeaderTitle: {
-    fontSize: '1.1rem',
-    fontWeight: '600',
-    margin: 0,
-  },
-  chatMessages: {
-    flex: 1,
-    overflowY: 'auto',
-    padding: '1.5rem',
-    backgroundColor: '#f8fafc',
-  },
-  chatMessage: {
-    display: 'flex',
-    gap: '0.75rem',
-    marginBottom: '1rem',
-  },
-  chatMessageUser: {
-    flexDirection: 'row-reverse',
-  },
-  messageAvatar: {
-    width: '40px',
-    height: '40px',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  messageAvatarAi: {
-    backgroundColor: '#c5b3e6',
-    color: '#1e293b',
-  },
-  messageAvatarUser: {
-    backgroundColor: '#a8e6cf',
-    color: '#1e293b',
-  },
-  messageContent: {
-    maxWidth: '70%',
-    padding: '0.75rem 1rem',
-    borderRadius: '12px',
-    lineHeight: '1.5',
-  },
-  messageContentAi: {
-    backgroundColor: '#ffffff',
-    color: '#1e293b',
-    boxShadow: '0 1px 4px rgba(0, 0, 0, 0.05)',
-  },
-  messageContentUser: {
-    backgroundColor: '#a8e6cf',
-    color: '#1e293b',
-  },
-  chatInputContainer: {
-    padding: '1rem',
-    backgroundColor: '#ffffff',
-    borderTop: '1px solid #e2e8f0',
-    borderRadius: '0 0 12px 12px',
-  },
-  chatInputWrapper: {
-    display: 'flex',
-    gap: '0.75rem',
-  },
-  chatInput: {
-    flex: 1,
-    padding: '0.75rem 1rem',
-    border: '2px solid #e2e8f0',
-    borderRadius: '10px',
-    fontSize: '0.95rem',
-    outline: 'none',
-    fontFamily: 'inherit',
-  },
-  sendBtn: {
-    padding: '0.75rem 1.25rem',
-    backgroundColor: '#c5b3e6',
-    color: '#1e293b',
-    border: 'none',
-    borderRadius: '10px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-  },
-  analysisResults: {
-    width: '100%',
-  },
-  analysisHeader: {
-    textAlign: 'center',
-    marginBottom: '2rem',
-  },
-  overallScore: {
-    fontSize: '2rem',
-    fontWeight: '700',
-    color: '#a8c7fa',
-  },
-  overallScoreLabel: {
-    fontSize: '0.9rem',
-    color: '#64748b',
-  },
-  phasesGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-    gap: '1.25rem',
-  },
-  phaseCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: '12px',
-    padding: '1.25rem',
-    boxShadow: '0 1px 8px rgba(0, 0, 0, 0.06)',
-  },
-  phaseHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: '1rem',
-  },
-  phaseTitle: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.75rem',
-  },
-  phaseIcon: {
-    width: '40px',
-    height: '40px',
-    borderRadius: '10px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: '#1e293b',
-  },
-  phaseH3: {
-    fontSize: '1.05rem',
-    color: '#1e293b',
-    fontWeight: '600',
-    margin: 0,
-  },
-  phaseScore: {
-    fontSize: '1rem',
-    fontWeight: '700',
-    color: '#1e293b',
-  },
-  phaseDetails: {
-    maxHeight: '240px',
-    overflowY: 'auto',
-  },
-  phaseDetailsH4: {
-    fontSize: '0.9rem',
-    color: '#64748b',
-    marginBottom: '0.5rem',
-    fontWeight: '600',
-  },
-  phaseAnalysis: {
-    fontSize: '0.9rem',
-    color: '#475569',
-    lineHeight: '1.5',
-    marginBottom: '1rem',
-  },
-  phaseList: {
-    listStyle: 'none',
-    padding: 0,
-    marginBottom: '1rem',
-  },
-  phaseLi: {
-    fontSize: '0.9rem',
-    color: '#475569',
-    marginBottom: '0.5rem',
-    paddingLeft: '1.25rem',
-    position: 'relative',
-  },
-};
 
 export default SDLCAnalyzer;
